@@ -30,21 +30,23 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type, checked } = e.target;
+    const target = e.target;
+
+    // Use type guard to safely access properties
     setFormData((prev: typeof formData) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [target.name]: target.type === "checkbox" ? (target as HTMLInputElement).checked : target.value,
     }));
   };
 
   // Render the form dynamically
   return (
     <div className="bg-gray-100 p-4 rounded shadow-md">
-      <h1 className="font-bold text-2xl mb-4 text-center ">Generated Form</h1>
+      <h1 className="font-bold text-2xl mb-4 text-center">Generated Form</h1>
       {Object.keys(formFields).length > 0 ? (
         <form className="space-y-4">
           {Object.entries(formFields).map(([key, fieldConfig]: any) => {
-            const { type = "text", value = "", options = [] } = fieldConfig;
+            const { type = "text", options = [] } = fieldConfig;
 
             return (
               <div key={key} className="flex flex-col">
