@@ -6,10 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import Editor from "react-simple-code-editor";
 
 interface JsonInputProps {
-    onInputChange: (data: string) => void; // Callback prop to pass JSON data
-  }
+  onInputChange: (data: string) => void; // Callback prop to pass JSON data
+}
 
-const JsonInput = ({onInputChange}: JsonInputProps) => {
+const JsonInput = ({ onInputChange }: JsonInputProps) => {
   const [jsonInput, setJsonInput] = useState<string>(""); // State to store JSON input
   const [error, setError] = useState<string | null>(null); // State to store errors
   const editorRef = useRef<HTMLDivElement>(null); // Ref for syncing scroll
@@ -64,7 +64,7 @@ const JsonInput = ({onInputChange}: JsonInputProps) => {
   return (
     <div className="flex w-full h-screen flex-row">
       <div className="flex-1 bg-gray-800 text-gray-100 p-4 flex flex-col">
-        <h1 className="text-center text-xl font-bold mb-4">JSON Input Tab</h1>
+        <h1 className="text-center text-2xl font-bold mb-4">JSON Input Tab</h1>
         <div className="flex-1 overflow-hidden flex ">
           {/* Editor with Line Numbers inside */}
           <div
