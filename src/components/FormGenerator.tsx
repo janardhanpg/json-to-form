@@ -1,17 +1,42 @@
+import { Download } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 
-interface FormGeneratorProps {
-  jsonData: string; // JSON data passed as string
+interface FormField {
+  id: string;
+  type: "text" | "select" | "radio" | "textarea";
+  label: string;
+  required: boolean;
+  placeholder?: string;
+  validation?: {
+    pattern?: string;
+    message?: string;
+  };
+  options?: { value: string; label: string }[]; // For select and radio
 }
 
-const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
+interface FormSchema {
+  formTitle: string;
+  formDescription: string;
+  fields: FormField[];
+}
+
+interface FormGeneratorProps {
+  jsonData: string; // JSON data passed as string
+  isDarkMode: boolean; // Dark mode state passed from App
+}
+
+const FormGenerator: React.FC<FormGeneratorProps> = ({
+  jsonData,
+  isDarkMode,
+}) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
+    getValues, // To get current form values
   } = useForm();
-  const [formSchema, setFormSchema] = React.useState<any>(null);
+  const [formSchema, setFormSchema] = React.useState<FormSchema | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   // Parse the JSON and dynamically generate form fields
@@ -44,8 +69,27 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
     console.log("Form Data Submitted:", data);
   };
 
+  // Download the form data as JSON
+  const downloadFormData = () => {
+    const formData = getValues(); // Get current form values
+    const jsonBlob = new Blob([JSON.stringify(formData, null, 2)], {
+      type: "application/json",
+    });
+
+    // Create a link to trigger the download
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(jsonBlob);
+    link.download = "form-data.json"; // Filename for the downloaded file
+    link.click();
+    URL.revokeObjectURL(link.href); // Clean up the URL object
+  };
+
   return (
-    <div className="bg-gray-100 p-4 rounded shadow-md">
+    <div
+      className={`p-4 shadow-md rounded-lg m-2 ${
+        isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-black"
+      }`}
+    >
       {error ? (
         <div className="text-red-500 text-center">{error}</div>
       ) : formSchema ? (
@@ -60,7 +104,7 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
 
           {/* Render Form Fields */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {formSchema.fields.map((field: any) => {
+            {formSchema.fields.map((field: FormField) => {
               const {
                 id,
                 type,
@@ -75,34 +119,49 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
                 <div key={id} className="flex flex-col">
                   <label
                     htmlFor={id}
-                    className="text-gray-700 font-medium mb-2 capitalize"
+                    className={`font-medium mb-2 capitalize ${
+                      isDarkMode ? "text-white" : "text-gray-700"
+                    }`}
                   >
                     {label}{" "}
                     {required && <span className="text-red-500">*</span>}
                   </label>
 
                   {/* Render Field Based on Type */}
-                  {type === "select" && (
+                  {type === "select" && options && Array.isArray(options) ? (
                     <select
                       {...register(id, {
                         required: required ? "This field is required" : false,
                       })}
                       id={id}
-                      className="p-2 border rounded-md focus:ring focus:outline-none"
+                      className={`p-2 border rounded-md focus:ring focus:outline-none ${
+                        isDarkMode
+                          ? "bg-gray-700 text-white"
+                          : "bg-white text-black"
+                      }`}
                     >
                       <option value="">Select an option</option>
-                      {options.map((option: any, idx: number) => (
+                      {options.map((option, idx) => (
                         <option key={idx} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </select>
-                  )}
+                  ) : type === "select" ? (
+                    <div className="text-red-500 text-sm">
+                      Options are required for select fields.
+                    </div>
+                  ) : null}
 
-                  {type === "radio" && (
+                  {type === "radio" && options && Array.isArray(options) ? (
                     <div className="space-y-2">
-                      {options.map((option: any, idx: number) => (
-                        <label key={idx} className="inline-flex items-center">
+                      {options.map((option, idx) => (
+                        <label
+                          key={idx}
+                          className={`inline-flex items-center ${
+                            isDarkMode ? "text-white" : "text-gray-700"
+                          }`}
+                        >
                           <input
                             type="radio"
                             {...register(id, {
@@ -117,7 +176,11 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
                         </label>
                       ))}
                     </div>
-                  )}
+                  ) : type === "radio" ? (
+                    <div className="text-red-500 text-sm">
+                      Options are required for radio fields.
+                    </div>
+                  ) : null}
 
                   {type === "textarea" && (
                     <textarea
@@ -126,7 +189,11 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
                       })}
                       id={id}
                       placeholder={placeholder}
-                      className="p-2 border rounded-md focus:ring focus:outline-none"
+                      className={`p-2 border rounded-md focus:ring focus:outline-none ${
+                        isDarkMode
+                          ? "bg-gray-700 text-white"
+                          : "bg-white text-black"
+                      }`}
                     />
                   )}
 
@@ -139,14 +206,18 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
                           pattern: validation?.pattern
                             ? {
                                 value: new RegExp(validation.pattern),
-                                message: validation.message,
+                                message: validation.message || "Invalid input", // Default fallback for message
                               }
                             : undefined,
                         })}
                         id={id}
                         type={type}
                         placeholder={placeholder}
-                        className="p-2 border rounded-md focus:ring focus:outline-none"
+                        className={`p-2 border rounded-md focus:ring focus:outline-none ${
+                          isDarkMode
+                            ? "bg-gray-700 text-white"
+                            : "bg-white text-black"
+                        }`}
                       />
                     )}
 
@@ -154,19 +225,33 @@ const FormGenerator: React.FC<FormGeneratorProps> = ({ jsonData }) => {
                   {errors[id]?.message && (
                     <p className="text-red-500 text-sm mt-1">
                       {typeof errors[id]?.message === "string"
-                        ? errors[id].message
+                        ? errors[id]?.message
                         : "Invalid input"}
                     </p>
                   )}
                 </div>
               );
             })}
-            <button
-              type="submit"
-              className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-500"
-            >
-              Submit
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-500 mt-4"
+              >
+                Submit
+              </button>
+              {/* Download Button */}
+              <button
+                onClick={downloadFormData}
+                className={`mt-4 py-2 px-4 flex rounded-md ${
+                  isDarkMode
+                    ? "bg-green-600 text-white hover:bg-green-500"
+                    : "bg-green-500 text-white hover:bg-green-400"
+                }`}
+              >
+                <Download className="mr-2" />
+                Download Form Data
+              </button>
+            </div>
           </form>
         </>
       ) : (
